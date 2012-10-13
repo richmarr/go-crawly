@@ -1,0 +1,8 @@
+#gocrawly { opacity:0.8; background:black; color:#999; position:absolute; right:0; top:0; width:300px }
+
+.page { font:11px Helvetica, Arial; }
+.page ul { margin:0; padding:0 }
+	.page li { margin:0; padding:0; list-style:none }
+.queued { background:#999; color:#666 }
+.running { background:#ccc; color:#696 }
+.done { background:#eee; color:#999 }
