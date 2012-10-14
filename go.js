@@ -13,7 +13,9 @@ setTimeout(function(){
 		var queue = [],
 			visited = {},
 			resources = {},
-			maxDepth = 1,
+			throttle = 6,
+			open = 0,
+			maxDepth = 5,
 			blockedExtentions = /\.(zip|png|gif|je?pg|pdf|docx?|xlsx?|ppsx?|mov|avi|js|javascript|xml|sh|txt)$/,
 			blockedProtocols = /^(mailto:|ftp:)/,
 			running = false,
@@ -24,39 +26,70 @@ setTimeout(function(){
 			this.url = ( url || location.href ).split("#")[0]; // ignore hash URLs
 		}
 		
-		handle( new Link(), undefined ); // null case scrapes the current document to seed the queue
-	
-		function handle( link, data ){
-			var $data = data ? $(data.replace(/[ ]src=/ig," data-src=")) : undefined;
-			$("#"+link.id).removeClass("running").addClass("done");
-			$( "a", $data ).each(function(){ enqueue( new Link( $(this).attr("href"), link.depth+1 ) ); });
-			$("img,link,script[src]",$data).each(function(){ resource( link, this ); });
-			run();
-		}
+		enqueue( new Link(document.location.href) ); // null case scrapes the current document to seed the queue
+		run()
+		
+		// Iterates over the queue
 		function run(){
-			if ( !running ){
-				running = true;
-				while( queue.length ){
-					var link = queue.shift();
-					$("#"+link.id).removeClass("queued").addClass("running");
-					get( link );
+			if ( !running ) {
+				running = true; 
+				while( queue.length && open < throttle ) {
+					get( queue.shift() ); // FIFO
+					open++;
 				}
 				running = false;
 			}
 		}
-		function get( link ){ $.get( link.url, function(data){ handle( link, data ) } )}
+		
+		// Takes some response data and pulls any links or resources out of it
+		function handle( link, data ){
+			// HTML comes in as a string, XHTML comes in as a document, and we want to avoid auto pre-loading all the images
+			var $data = data ? data instanceof Document ? data : $(data.replace(/[ ]src=/ig," data-src=")) : undefined,
+				count = 0;
+			
+			// Queue up any links in this doc
+			$( "a", $data ).each(function(){ enqueue( new Link( $(this).attr("href"), link.depth+1 ) ); });
+			
+			// List all the resources
+			$("img, link, script",$data).each(function(){ if ( resource( link, this ) ) count++; });
+			
+			$("<a href='#'>("+count+")</a>").appendTo("#"+link.id+" .total").click(function(e){
+				e.preventDefault();
+				$("#"+link.id+" .resources").stop().slideToggle();
+			});
+			
+			// Kick the loop off
+			setTimeout( run, 1 );
+		}
+		
+		// calls URLs to and wraps the source link into the processing call
+		function get( link ){
+			var $link = $("#"+link.id).removeClass("queued").addClass("running");
+			var start = new Date();
+			var $req = $.get( link.url, function(data){ 
+				open--;
+				var time = new Date().getTime() - start.getTime();
+				$link.removeClass("running").addClass("done").find(".time").html(time+"ms");
+				handle( link, data ); 
+			}).error( function( xhr, status, err ){ 
+				open--;
+				$link.removeClass("running").addClass("error").append("<div>"+err+"</div>");
+			});
+		}
+		
+		// pushes a new link to the queue, assuming it passes validation
 		function enqueue( link ){
 			if ( kosher( link ) ){
-				link.id = urlToId(link.url);
-				$gc.append("<div class='page depth_"+link.depth+" queued' id='"+link.id+"'><a href='"+link.url+"'>"+link.url+"</a><ul class='resources'></ul></div>")
+				link.id = b52(8);
+				$gc.append("<div class='page depth_"+link.depth+" queued' id='"+link.id+"'><a href='"+link.url+"'>"+link.url+"</a> <span class='time'></span> <span class='total'></span> <ul class='resources'></ul> </div>")
 				queue.push(link);
 				visited[link.url] = true;
-				run();
 			}
 		}
+		// test whether we want to traverse a new link
 		function kosher( link ){
-			if ( link.depth > 10 ) return false;
-			if ( visited[link.url] ) return false;
+			if ( link.depth > maxDepth ) return false; // max depth
+			if ( visited[link.url] ) return false; // 
 			if ( link.url.indexOf("/") != 0 && link.url.indexOf(host) == -1 ) return false;
 			if ( link.url.indexOf("/") != 0 && link.url.indexOf(host) > 10 ) return false;
 			if ( blockedExtentions.test(link.url) ) return false;
@@ -64,25 +97,28 @@ setTimeout(function(){
 			return true;
 		}
 		function resource( link, node ){
-			var buffer = ["<li>"];
-			$("#"+link.id+" .resources").append("<li></li>")
-			//console.log(node)
-		}
-		function urlToId( url ){ return b62(url); }
-		function b62(input) {
-			try { b62pad } catch(e) { b62pad=''; }
-			var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-			var output = "";
-			var len = input.length;
-			for(var i = 0; i < len; i += 3)
-			{
-				var triplet = (input.charCodeAt(i) << 16) | (i + 1 < len ? input.charCodeAt(i+1) << 8 : 0) | (i + 2 < len ? input.charCodeAt(i+2) : 0);
-				for(var j = 0; j < 4; j++)
-				{
-					if(i * 8 + j * 6 > input.length * 8) output += b62pad;
-					else output += tab.charAt((triplet >>> 6*(3-j)) & 0x3F);
-				}
+			var name = node.tagName.toLowerCase(),
+				url;
+			switch ( name ) {
+				case 'script':
+				case 'img':
+					url = node.getAttribute('data-src');
+					break;
+				case 'link':
+					url = node.getAttribute('href');
+					break;
 			}
+			if ( url ) {
+				$("#"+link.id+" .resources").append("<li><a href='"+url+"'>"+url+"</a></li>");
+				return true
+			}
+		}
+		
+		// Random base 52 ID
+		function b52(len) { // 
+			var tab = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz",
+				output = "";
+			for(var i = 0; i < len; i++ ) output += tab[Math.round(Math.random()*52-0.5)];
 			return output;
 		}
 	});
