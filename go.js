@@ -11,11 +11,13 @@ setTimeout(function(){
 		
 		// Seed the queue
 		var queue = [],
+			startTag = /<(body|head)((?:\s+[\w-]+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/ig,
+			endTag = /<\/(body|head)[^>]*>/ig,
 			visited = {},
 			resources = {},
 			throttle = 6,
 			open = 0,
-			maxDepth = 5,
+			maxDepth = 1,
 			blockedExtentions = /\.(zip|png|gif|je?pg|pdf|docx?|xlsx?|ppsx?|mov|avi|js|javascript|xml|sh|txt)$/,
 			blockedProtocols = /^(mailto:|ftp:)/,
 			running = false,
@@ -44,14 +46,14 @@ setTimeout(function(){
 		// Takes some response data and pulls any links or resources out of it
 		function handle( link, data ){
 			// HTML comes in as a string, XHTML comes in as a document, and we want to avoid auto pre-loading all the images
-			var $data = data ? data instanceof Document ? data : $(data.replace(/[ ]src=/ig," data-src=")) : undefined,
+			var $data = data ? $( data instanceof Document ? data : data.replace(/[ ]src=/ig," data-src=").replace(startTag,"<div>").replace(endTag,"</div>") ) : undefined,
 				count = 0;
 			
 			// Queue up any links in this doc
 			$( "a", $data ).each(function(){ enqueue( new Link( $(this).attr("href"), link.depth+1 ) ); });
 			
 			// List all the resources
-			$("img, link, script",$data).each(function(){ if ( resource( link, this ) ) count++; });
+			$("img,link,script",$data).each(function(){ if ( resource( link, this ) ) count++; });
 			
 			$("<a href='#'>("+count+")</a>").appendTo("#"+link.id+" .total").click(function(e){
 				e.preventDefault();
@@ -71,7 +73,7 @@ setTimeout(function(){
 				var time = new Date().getTime() - start.getTime();
 				$link.removeClass("running").addClass("done").find(".time").html(time+"ms");
 				handle( link, data ); 
-			}).error( function( xhr, status, err ){ 
+			},'text').error( function( xhr, status, err ){ 
 				open--;
 				$link.removeClass("running").addClass("error").append("<div>"+err+"</div>");
 			});
