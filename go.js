@@ -17,7 +17,7 @@ setTimeout(function(){
 			resources = {},
 			throttle = 6,
 			open = 0,
-			maxDepth = 1,
+			maxDepth = 6,
 			blockedExtentions = /\.(zip|png|gif|je?pg|pdf|docx?|xlsx?|ppsx?|mov|avi|js|javascript|xml|sh|txt)$/,
 			blockedProtocols = /^(mailto:|ftp:)/,
 			running = false,
