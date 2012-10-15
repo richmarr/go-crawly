@@ -106,7 +106,13 @@ setTimeout(function(){
 		function enqueue( link ){
 			if ( kosher( link ) ){
 				link.id = b52(8);
-				$gc.append("<div class='page depth_"+link.depth+" queued' id='"+link.id+"'><a href='"+link.url+"'>"+link.url+"</a> <span class='time'></span> <span class='total'></span> <ul class='resources'></ul> </div>")
+				$gc.append(
+					"<div class='page depth_"+link.depth+" queued' id='"+link.id+"'>"+
+						"<a href='"+link.url+"'>"+link.url+"</a> "+
+						"<span class='time'></span> "
+						"<span class='total'></span> "
+						"<ul class='resources'></ul> "+
+					"</div>")
 				queue.push(link);
 				visited[link.url] = true;
 			}
