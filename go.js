@@ -6,7 +6,30 @@ if (typeof jQuery == 'undefined'){
 setTimeout(function(){
 	jQuery(function($){
 		// Set up output
-		$("<link href='https://raw.github.com/richmarr/go-crawly/master/go.css' media='screen' rel='Stylesheet' type='text/css'>").appendTo(document.head);
+		$("<style>\n"+
+			"#gocrawly { padding:10px; margin:10px; background:#eee; border-radius:10px; box-shadow:2px 2px 15px #666; color:#999; position:absolute; right:0; top:0; width:400px; z-index:9999999 }\n"+
+			"#gocrawly .page { font:11px Helvetica, Arial; padding:1px; margin:1px; }\n"+
+			"	#gocrawly .page a { color:#39c}\n"+
+			"	#gocrawly .page ul { margin:0 0 0 10px; padding:0 }\n"+
+			"		#gocrawly .page li { margin:0; padding:0; list-style:none }\n"+
+			"			#gocrawly .page li a { color:#9cf; font-size:10px }\n"+
+			"#gocrawly .queued { background:#999; color:#666 }\n"+
+			"#gocrawly .running { background:#ccc; color:#696 }\n"+
+			"#gocrawly .done { color:#666 }\n"+
+			"#gocrawly .error { background:#fcc }\n"+
+			"#gocrawly .resources { display:none; overflow:hidden }\n"+
+			"#gocrawly .time { padding:0 4px; }\n"+
+			"#gocrawly .depth_1{ padding-left:0 }\n"+
+			"#gocrawly .depth_2{ padding-left:10px }\n"+
+			"#gocrawly .depth_3{ padding-left:20px }\n"+
+			"#gocrawly .depth_4{ padding-left:30px }\n"+
+			"#gocrawly .depth_5{ padding-left:40px }\n"+
+			"#gocrawly .depth_6{ padding-left:50px }\n"+
+			"#gocrawly .depth_7{ padding-left:60px }\n"+
+			"#gocrawly .depth_8{ padding-left:70px }\n"+
+			"#gocrawly .depth_9{ padding-left:80px }\n"+
+			"#gocrawly .depth_10{ padding-left:90px }\n"+
+			"</style>").appendTo(document.head);
 		var $gc = $("<div id='gocrawly'></div>").appendTo(document.body);
 		
 		// Seed the queue
