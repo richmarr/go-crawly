@@ -6,7 +6,7 @@ if (typeof jQuery == 'undefined'){
 setTimeout(function(){
 	jQuery(function($){
 		// Set up output
-		$("<link href='//raw.github.com/richmarr/go-crawly/master/go.css' media='screen' rel='Stylesheet' type='text/css'>").appendTo(document.head);
+		$("<link href='//raw.github.com/richmarr/go-crawly/master/go.css' media='screen' rel='Stylesheet' type='text/css'>").appendTo(document.body);
 		var $gc = $("<div id='gocrawly'></div>").appendTo(document.body);
 		
 		// Seed the queue
