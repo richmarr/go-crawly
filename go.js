@@ -7,7 +7,7 @@ setTimeout(function(){
 	jQuery(function($){
 		// Set up output
 		$("<style>\n"+
-			"#gocrawly { padding:10px; margin:10px; background:#eee; border-radius:10px; box-shadow:2px 2px 15px #666; color:#999; position:absolute; right:0; top:0; width:400px; z-index:9999999 }\n"+
+			"#gocrawly { padding:10px; margin:10px; background:rgba(255,255,255,0.3); border:3px solid white; border-radius:10px; box-shadow:2px 2px 15px #666, 2px 2px 15px #eee inset; color:#999; position:absolute; right:0; top:0; width:400px; z-index:9999999 }\n"+
 			"#gocrawly .page { font:11px Helvetica, Arial; padding:1px; margin:1px; }\n"+
 			"	#gocrawly .page a { color:#39c}\n"+
 			"	#gocrawly .page ul { margin:0 0 0 10px; padding:0 }\n"+
@@ -34,7 +34,7 @@ setTimeout(function(){
 		
 		// Seed the queue
 		var queue = [],
-			startTag = /<(body|head)((?:\s+[\w-]+(?:\s*=\s*(?:(?:"[^"]*")|(?:'[^']*')|[^>\s]+))?)*)\s*(\/?)>/ig,
+			startTag = /<(body|head)[^>]*>/ig,
 			endTag = /<\/(body|head)[^>]*>/ig,
 			visited = {},
 			resources = {},
@@ -109,8 +109,8 @@ setTimeout(function(){
 				$gc.append(
 					"<div class='page depth_"+link.depth+" queued' id='"+link.id+"'>"+
 						"<a href='"+link.url+"'>"+link.url+"</a> "+
-						"<span class='time'></span> "
-						"<span class='total'></span> "
+						"<span class='time'></span> "+
+						"<span class='total'></span> "+
 						"<ul class='resources'></ul> "+
 					"</div>")
 				queue.push(link);
