@@ -5,7 +5,8 @@ if (typeof jQuery == 'undefined'){
 }
 setTimeout(function(){
 	jQuery(function($){
-		// Set up output
+		
+		// Output style
 		$("<style>\n"+
 			"#gocrawly { padding:10px; margin:10px; background:rgba(255,255,255,0.3); border:3px solid white; border-radius:10px; box-shadow:2px 2px 15px #666, 2px 2px 15px #eee inset; color:#999; position:absolute; right:0; top:0; width:400px; z-index:9999999 }\n"+
 			"#gocrawly .page { font:11px Helvetica, Arial; padding:1px; margin:1px; }\n"+
@@ -25,33 +26,37 @@ setTimeout(function(){
 			"#gocrawly .depth_4{ padding-left:30px }\n"+
 			"#gocrawly .depth_5{ padding-left:40px }\n"+
 			"#gocrawly .depth_6{ padding-left:50px }\n"+
-			"#gocrawly .depth_7{ padding-left:60px }\n"+
-			"#gocrawly .depth_8{ padding-left:70px }\n"+
-			"#gocrawly .depth_9{ padding-left:80px }\n"+
-			"#gocrawly .depth_10{ padding-left:90px }\n"+
 			"</style>").appendTo(document.head);
+		
+		// outline UI
 		var $gc = $("<div id='gocrawly'></div>").appendTo(document.body);
+		$("<a href='#' style='float:right'>X</a>").appendTo($gc).click(function(e){ e.preventDefault(); $gc.remove() });
 		
 		// Seed the queue
 		var queue = [],
 			startTag = /<(body|head)[^>]*>/ig,
 			endTag = /<\/(body|head)[^>]*>/ig,
-			visited = {},
+			queued = {},
 			resources = {},
-			throttle = 6,
+			throttle = 2,
 			open = 0,
 			maxDepth = 6,
 			blockedExtentions = /\.(zip|png|gif|je?pg|pdf|docx?|xlsx?|ppsx?|mov|avi|js|javascript|xml|sh|txt)$/,
-			blockedProtocols = /^(mailto:|ftp:)/,
 			running = false,
+			origin = parseUrl(document.location.href),
 			host = window.location.hostname;
-	
-		function Link( url, depth ){
-			this.depth = depth || 0;
-			this.url = ( url || location.href ).split("#")[0]; // ignore hash URLs
+		
+		// 
+		function parseUrl( url, depth ){
+			var a = document.createElement('a');
+			a.href = url;
+			a.id = b52(8);
+			a.path = a.pathname + a.search;
+			a.depth = isNaN(depth) ? 0 : depth;
+ 			return a;
 		}
 		
-		enqueue( new Link(document.location.href) ); // null case scrapes the current document to seed the queue
+		enqueue(origin);
 		run()
 		
 		// Iterates over the queue
@@ -73,7 +78,7 @@ setTimeout(function(){
 				count = 0;
 			
 			// Queue up any links in this doc
-			$( "a", $data ).each(function(){ enqueue( new Link( $(this).attr("href"), link.depth+1 ) ); });
+			$( "a", $data ).each(function(){ enqueue( parseUrl($(this).attr("href"), link.depth+1 ) ); });
 			
 			// List all the resources
 			$("img,link,script",$data).each(function(){ if ( resource( link, this ) ) count++; });
@@ -91,7 +96,7 @@ setTimeout(function(){
 		function get( link ){
 			var $link = $("#"+link.id).removeClass("queued").addClass("running");
 			var start = new Date();
-			var $req = $.get( link.url, function(data){ 
+			var $req = $.get( link.path, function(data){ 
 				open--;
 				var time = new Date().getTime() - start.getTime();
 				$link.removeClass("running").addClass("done").find(".time").html(time+"ms");
@@ -102,31 +107,28 @@ setTimeout(function(){
 			});
 		}
 		
-		// pushes a new link to the queue, assuming it passes validation
-		function enqueue( link ){
-			if ( kosher( link ) ){
-				link.id = b52(8);
-				$gc.append(
-					"<div class='page depth_"+link.depth+" queued' id='"+link.id+"'>"+
-						"<a href='"+link.url+"'>"+link.url+"</a> "+
-						"<span class='time'></span> "+
-						"<span class='total'></span> "+
-						"<ul class='resources'></ul> "+
-					"</div>")
-				queue.push(link);
-				visited[link.url] = true;
-			}
+		// push a new link to the queue
+		function enqueue( a ){
+			
+			// filters
+			if ( a.depth > maxDepth ) return;
+			if ( queued[a.path] ) return;
+			if ( a.hostname != origin.hostname || a.protocol != origin.protocol ) return;
+			if ( blockedExtentions.test(a.path) ) return;
+			
+			// output
+			$("<div class='page depth_"+a.depth+" queued' data-depth='"+a.depth+"'>"+
+				"<a href='"+a.path+"'>"+a.path+"</a> "+
+				"<span class='time'></span> "+
+				"<span class='total'></span> "+
+				"<ul class='resources'></ul> "+
+			"</div>")
+				.appendTo($gc);
+			
+			queue.push(a);
+			queued[a.path] = true;
 		}
-		// test whether we want to traverse a new link
-		function kosher( link ){
-			if ( link.depth > maxDepth ) return false; // max depth
-			if ( visited[link.url] ) return false; // 
-			if ( link.url.indexOf("/") != 0 && link.url.indexOf(host) == -1 ) return false;
-			if ( link.url.indexOf("/") != 0 && link.url.indexOf(host) > 10 ) return false;
-			if ( blockedExtentions.test(link.url) ) return false;
-			if ( blockedProtocols.test(link.url) ) return false;
-			return true;
-		}
+		
 		function resource( link, node ){
 			var name = node.tagName.toLowerCase(),
 				url;
